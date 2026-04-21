@@ -1,5 +1,6 @@
 """Grid layout composition for the trombinoscope."""
 
+import logging
 import math
 from dataclasses import dataclass
 from typing import List, Optional, Union
@@ -7,6 +8,10 @@ from typing import List, Optional, Union
 from PIL import Image, ImageDraw, ImageFont
 
 from config.settings import settings
+from src.trombi.shapes import ShapeType, apply_shape_mask
+from src.trombi.effects import add_drop_shadow
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,6 +24,8 @@ class Layout:
     label_h: int
     bg: str
     font_size: int = 46
+    shape: ShapeType = "square"
+    shadow: bool = True
 
 
 # A4 Landscape dimensions at 300 DPI (print quality)
@@ -32,6 +39,8 @@ def calculate_a4_layout(
     label_h: int = 80,
     bg: str = "#ffffff",
     font_size: int = 46,
+    shape: ShapeType = "square",
+    shadow: bool = True,
 ) -> Layout:
     """Calculate optimal layout for A4 landscape format.
 
@@ -44,6 +53,8 @@ def calculate_a4_layout(
         label_h: Height reserved for labels
         bg: Background color
         font_size: Font size for labels
+        shape: Shape type for images
+        shadow: Whether to apply drop shadows
 
     Returns:
         Layout optimized for A4 landscape
@@ -89,6 +100,8 @@ def calculate_a4_layout(
                     label_h=label_h,
                     bg=bg,
                     font_size=font_size,
+                    shape=shape,
+                    shadow=shadow,
                 )
 
     # Fallback if no good layout found
@@ -110,6 +123,8 @@ def calculate_a4_layout(
             label_h=label_h,
             bg=bg,
             font_size=font_size,
+            shape=shape,
+            shadow=shadow,
         )
 
     return best_layout
@@ -157,7 +172,22 @@ def compose_trombinoscope(
         x = pad + c * (cell + pad)
         y = pad + r * (cell + label_h + pad)
 
-        canvas.paste(img, (x, y))
+        # Apply shape mask
+        img_processed = apply_shape_mask(img, layout.shape)
+
+        # Apply shadow if enabled
+        if layout.shadow:
+            img_processed = add_drop_shadow(img_processed)
+            # Adjust position to center the shadowed image
+            shadow_offset = 4 + 8  # offset + blur
+            x -= shadow_offset // 2
+            y -= shadow_offset // 2
+
+        # Paste image (with alpha if shape is not square)
+        if img_processed.mode == "RGBA":
+            canvas.paste(img_processed, (x, y), img_processed)
+        else:
+            canvas.paste(img_processed, (x, y))
 
         if labels and i < len(labels) and labels[i].strip():
             text = labels[i].strip()
@@ -248,7 +278,23 @@ def compose_trombinoscope_a4(
 
         # Resize image to fit the cell size
         img_resized = img.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
-        a4_canvas.paste(img_resized, (x, y))
+
+        # Apply shape mask
+        img_processed = apply_shape_mask(img_resized, layout.shape)
+
+        # Apply shadow if enabled
+        if layout.shadow:
+            img_processed = add_drop_shadow(img_processed)
+            # Adjust position to center the shadowed image
+            shadow_offset = 4 + 8  # offset + blur
+            x -= shadow_offset // 2
+            y -= shadow_offset // 2
+
+        # Paste image (with alpha if shape is not square)
+        if img_processed.mode == "RGBA":
+            a4_canvas.paste(img_processed, (x, y), img_processed)
+        else:
+            a4_canvas.paste(img_processed, (x, y))
 
         if labels and i < len(labels) and labels[i].strip():
             text = labels[i].strip()

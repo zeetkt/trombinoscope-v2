@@ -2,7 +2,7 @@
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from PIL import Image
 
@@ -10,6 +10,9 @@ from config.settings import settings
 from src.trombi.face_detector import FaceDetection, FaceDetector
 
 logger = logging.getLogger(__name__)
+
+# Type alias for progress callback
+ProgressCallback = Callable[[int, int], None]
 
 
 def crop_face_square(
@@ -93,17 +96,36 @@ def process_images_parallel(
     margin: float = settings.default_margin,
     upward_bias: float = settings.default_upward_bias,
     max_workers: int = settings.max_workers,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> List[Image.Image]:
-    """Process multiple images in parallel."""
+    """Process multiple images in parallel.
+
+    Args:
+        images: List of images to process.
+        out_size: Output size for cropped faces.
+        margin: Margin around detected faces.
+        upward_bias: Upward bias for face centering.
+        max_workers: Maximum number of parallel workers.
+        progress_callback: Optional callback function(current, total) for progress updates.
+
+    Returns:
+        List of processed images.
+    """
     if not images:
         return []
+
+    total = len(images)
+    processed_count = 0
 
     def process_with_detector(img: Image.Image) -> Image.Image:
         with FaceDetector() as detector:
             return process_single_image(img, detector, out_size, margin, upward_bias)
 
     if len(images) == 1:
-        return [process_with_detector(images[0])]
+        result = process_with_detector(images[0])
+        if progress_callback:
+            progress_callback(1, 1)
+        return [result]
 
     results = [None] * len(images)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -115,6 +137,9 @@ def process_images_parallel(
             idx = futures[future]
             try:
                 results[idx] = future.result()
+                processed_count += 1
+                if progress_callback:
+                    progress_callback(processed_count, total)
             except Exception as e:
                 logger.error(f"Error processing image {idx}: {e}")
                 raise
