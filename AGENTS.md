@@ -13,6 +13,10 @@ Upgraded Python/Streamlit application for generating trombinoscopes with OpenCV 
 - `src/trombi/layout.py` - Grid composition
 - `src/trombi/app.py` - Streamlit UI
 - `src/trombi/utils.py` - Utility functions
+- `src/trombi/shapes.py` - Shape masks (circle, rounded, hexagon)
+- `src/trombi/effects.py` - Visual effects (drop shadows)
+- `src/trombi/pdf_generator.py` - PDF export (A4 300 DPI)
+- `src/trombi/reorder.py` - Drag-and-drop reordering helpers
 
 ## Commands
 
@@ -88,8 +92,19 @@ from config.settings import settings
 
 ## Dependencies
 
-Core: streamlit, opencv-python-headless, pillow, numpy, pydantic, pydantic-settings
+Core: streamlit, opencv-python-headless, pillow, numpy, pydantic, pydantic-settings, fpdf2, streamlit-sortables
 Dev: pytest, pytest-cov, black, ruff, mypy
+
+## Features
+
+- **Face Detection**: OpenCV Haar Cascade for detecting faces in photos
+- **Shape Masks**: Circle, rounded rectangle, and hexagon photo shapes
+- **Drop Shadows**: Subtle shadow effects for photo depth (enabled by default)
+- **PDF Export**: A4 landscape format at 300 DPI for print quality
+- **Drag-and-Drop**: Reorder photos using streamlit-sortables
+- **Progress Bar**: Real-time progress during image processing
+- **A4 Layout**: Automatic optimal layout calculation for A4 pages
+- **Parallel Processing**: Multi-threaded image processing for speed
 
 ## GitHub Repository
 
