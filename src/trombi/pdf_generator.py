@@ -121,5 +121,5 @@ def generate_pdf(
         pdf.set_font("Arial", "B", 12)
         pdf.cell(50, 10, title, align="R")
 
-    # Return PDF as bytes
-    return pdf.output()
+    # Return PDF as bytes (fpdf2 returns bytearray, convert to bytes for Streamlit)
+    return bytes(pdf.output())
