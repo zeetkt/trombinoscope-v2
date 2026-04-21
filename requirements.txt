@@ -1,0 +1,10 @@
+# Production dependencies
+streamlit>=1.28.0
+mediapipe>=0.10.0
+pillow>=10.0.0
+numpy>=1.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Optional: OpenCV for additional image processing
+opencv-python-headless>=4.8.0
