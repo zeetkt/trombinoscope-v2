@@ -189,19 +189,32 @@ def compose_trombinoscope_a4(
 ) -> Image.Image:
     """Compose images into an A4 landscape format (3508x2480px at 300 DPI).
     
-    The grid is centered on the A4 page with automatic margins.
+    The grid is centered on the A4 page with automatic centering.
+    Images are resized to fill the page optimally.
     """
     n = len(images)
     cols = max(1, layout.cols)
     rows = math.ceil(n / cols)
 
-    cell = layout.out_size
     pad = layout.padding
     label_h = layout.label_h
 
+    # Calculate optimal cell size to fill the entire A4 page
+    # Width: cols * cell + (cols + 1) * pad = A4_LANDSCAPE_WIDTH
+    # Height: rows * (cell + label_h) + (rows + 1) * pad = A4_LANDSCAPE_HEIGHT
+    
+    max_cell_from_width = (A4_LANDSCAPE_WIDTH - (cols + 1) * pad) // cols
+    max_cell_from_height = (A4_LANDSCAPE_HEIGHT - (rows + 1) * pad) // rows - label_h
+    
+    # Use the smaller dimension to ensure everything fits
+    cell_size = min(max_cell_from_width, max_cell_from_height)
+    
+    # Ensure minimum size
+    cell_size = max(cell_size, 100)
+
     # Calculate grid dimensions
-    grid_w = cols * cell + (cols + 1) * pad
-    grid_h = rows * (cell + label_h) + (rows + 1) * pad
+    grid_w = cols * cell_size + (cols + 1) * pad
+    grid_h = rows * (cell_size + label_h) + (rows + 1) * pad
 
     # Create A4 canvas with exact dimensions
     a4_canvas = Image.new("RGB", (A4_LANDSCAPE_WIDTH, A4_LANDSCAPE_HEIGHT), layout.bg)
@@ -216,17 +229,19 @@ def compose_trombinoscope_a4(
 
     for i, img in enumerate(images):
         r, c = divmod(i, cols)
-        x = offset_x + pad + c * (cell + pad)
-        y = offset_y + pad + r * (cell + label_h + pad)
+        x = offset_x + pad + c * (cell_size + pad)
+        y = offset_y + pad + r * (cell_size + label_h + pad)
 
-        a4_canvas.paste(img, (x, y))
+        # Resize image to fit the cell size
+        img_resized = img.resize((cell_size, cell_size), Image.Resampling.LANCZOS)
+        a4_canvas.paste(img_resized, (x, y))
 
         if labels and i < len(labels) and labels[i].strip():
             text = labels[i].strip()
             bbox = draw.textbbox((0, 0), text, font=font_label)
             tw = bbox[2] - bbox[0]
-            tx = x + (cell - tw) // 2
-            ty = y + cell + 10
+            tx = x + (cell_size - tw) // 2
+            ty = y + cell_size + 10
             draw.text((tx, ty), text, fill="black", font=font_label)
 
     if title_br.strip():
