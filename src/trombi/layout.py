@@ -21,6 +21,100 @@ class Layout:
     font_size: int = 46
 
 
+# A4 Landscape dimensions at 300 DPI (print quality)
+A4_LANDSCAPE_WIDTH = 3508  # 297mm at 300 DPI
+A4_LANDSCAPE_HEIGHT = 2480  # 210mm at 300 DPI
+A4_MARGIN = 100  # Margin in pixels
+
+
+def calculate_a4_layout(
+    num_images: int,
+    label_h: int = 80,
+    bg: str = "#ffffff",
+    font_size: int = 46,
+) -> Layout:
+    """Calculate optimal layout for A4 landscape format.
+
+    Automatically determines the best number of columns and image size
+    to fit all images on an A4 landscape page at 300 DPI.
+
+    Args:
+        num_images: Number of images to arrange
+        label_h: Height reserved for labels
+        bg: Background color
+        font_size: Font size for labels
+
+    Returns:
+        Layout optimized for A4 landscape
+    """
+    # Usable area (with margins)
+    usable_width = A4_LANDSCAPE_WIDTH - (2 * A4_MARGIN)
+    usable_height = A4_LANDSCAPE_HEIGHT - (2 * A4_MARGIN)
+
+    # Try different column counts to find optimal fit
+    best_layout = None
+    best_score = float('-inf')
+
+    for cols in range(1, min(num_images + 1, 8)):  # Max 8 columns
+        rows = math.ceil(num_images / cols)
+
+        # Calculate maximum possible cell size
+        # Width equation: cols * cell + (cols + 1) * padding <= usable_width
+        # Height equation: rows * (cell + label_h) + (rows + 1) * padding <= usable_height
+
+        # Try with minimum padding of 20px
+        padding = 20
+
+        # Calculate max cell size from width constraint
+        max_cell_width = (usable_width - (cols + 1) * padding) // cols
+
+        # Calculate max cell size from height constraint
+        max_cell_height = (usable_height - (rows + 1) * padding) // rows - label_h
+
+        # Use the smaller dimension to ensure square cells
+        cell_size = min(max_cell_width, max_cell_height, 400)  # Max 400px per cell
+
+        if cell_size < 100:  # Too small, skip
+            continue
+
+        # Calculate actual canvas size
+        canvas_w = cols * cell_size + (cols + 1) * padding
+        canvas_h = rows * (cell_size + label_h) + (rows + 1) * padding
+
+        # Score based on cell size (larger is better) and waste (less is better)
+        area_used = canvas_w * canvas_h
+        total_area = usable_width * usable_height
+        utilization = area_used / total_area
+
+        # Prefer layouts with larger cells and good page utilization
+        score = cell_size * 0.7 + utilization * 500
+
+        if score > best_score:
+            best_score = score
+            best_layout = Layout(
+                cols=cols,
+                out_size=cell_size,
+                padding=padding,
+                label_h=label_h,
+                bg=bg,
+                font_size=font_size,
+            )
+
+    # Fallback if no good layout found
+    if best_layout is None:
+        # Use 4 columns with smaller cells
+        best_layout = Layout(
+            cols=min(4, num_images),
+            out_size=200,
+            padding=20,
+            label_h=label_h,
+            bg=bg,
+            font_size=font_size,
+        )
+
+    return best_layout
+
+
 def load_font(
     size: int, bold: bool = True
 ) -> Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]:

@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config.settings import settings
 from src.trombi.image_processor import process_images_parallel
-from src.trombi.layout import Layout, compose_trombinoscope
+from src.trombi.layout import Layout, compose_trombinoscope, calculate_a4_layout
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,15 +49,38 @@ def main() -> None:
     with col2:
         st.subheader("Settings")
 
+        format_option = st.selectbox(
+            "Format",
+            ["Standard", "A4 Paysage (300 DPI)"],
+            help="A4 Paysage optimise automatiquement la taille pour une page A4 en mode paysage"
+        )
+        
+        use_a4 = format_option == "A4 Paysage (300 DPI)"
+
+        if use_a4:
+            st.info("ℹ️ Mode A4 Paysage : les dimensions sont calculées automatiquement pour optimiser l'impression sur une page A4 à 300 DPI (3508×2480 px).")
+        
         c1, c2, c3 = st.columns(3)
         with c1:
-            cols = st.slider("Columns", 1, 8, settings.default_columns)
+            if use_a4:
+                st.metric("Colonnes", "Auto")
+                cols = 4  # Valeur par défaut, sera recalculée
+            else:
+                cols = st.slider("Columns", 1, 8, settings.default_columns)
         with c2:
-            out_size = st.slider(
-                "Thumbnail size (px)", 256, 900, settings.default_output_size
-            )
+            if use_a4:
+                st.metric("Taille vignettes", "Auto")
+                out_size = 300  # Valeur par défaut, sera recalculée
+            else:
+                out_size = st.slider(
+                    "Thumbnail size (px)", 256, 900, settings.default_output_size
+                )
         with c3:
-            padding = st.slider("Padding (px)", 10, 80, settings.default_padding)
+            if use_a4:
+                st.metric("Marge", "Auto")
+                padding = 20  # Valeur par défaut, sera recalculée
+            else:
+                padding = st.slider("Padding (px)", 10, 80, settings.default_padding)
 
         c4, c5, c6 = st.columns(3)
         with c4:
@@ -89,14 +112,23 @@ def main() -> None:
 
                         labels = names if any(names) else None
 
-                        layout = Layout(
-                            cols=cols,
-                            out_size=out_size,
-                            padding=padding,
-                            label_h=80,
-                            bg=bg,
-                            font_size=int(font_size),
-                        )
+                        if use_a4:
+                            layout = calculate_a4_layout(
+                                num_images=len(headshots),
+                                label_h=80,
+                                bg=bg,
+                                font_size=int(font_size),
+                            )
+                            st.info(f"Format A4: {layout.cols} colonnes, vignettes de {layout.out_size}px")
+                        else:
+                            layout = Layout(
+                                cols=cols,
+                                out_size=out_size,
+                                padding=padding,
+                                label_h=80,
+                                bg=bg,
+                                font_size=int(font_size),
+                            )
 
                         canvas = compose_trombinoscope(
                             images=headshots,
