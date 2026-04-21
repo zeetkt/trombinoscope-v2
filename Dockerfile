@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create .streamlit directory for appuser
 RUN mkdir -p /home/appuser/.streamlit && chown -R appuser:appuser /home/appuser
 
+# Create output directory with write permissions
+RUN mkdir -p /app/output && chown -R appuser:appuser /app/output
+
 WORKDIR /app
 
 # Copy installed packages from builder

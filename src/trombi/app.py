@@ -107,14 +107,16 @@ def main() -> None:
 
                         st.image(canvas, caption="Preview")
 
-                        canvas.save("trombinoscope.png")
-                        with open("trombinoscope.png", "rb") as f:
-                            st.download_button(
-                                label="Download PNG",
-                                data=f,
-                                file_name="trombinoscope.png",
-                                mime="image/png",
-                            )
+                        import io
+                        buf = io.BytesIO()
+                        canvas.save(buf, format="PNG")
+                        buf.seek(0)
+                        st.download_button(
+                            label="Download PNG",
+                            data=buf,
+                            file_name="trombinoscope.png",
+                            mime="image/png",
+                        )
                     except Exception as e:
                         st.error(f"Error: {e}")
                         logger.exception("Processing failed")
