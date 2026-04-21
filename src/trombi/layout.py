@@ -189,30 +189,49 @@ def compose_trombinoscope_a4(
 ) -> Image.Image:
     """Compose images into an A4 landscape format (3508x2480px at 300 DPI).
     
-    The grid is centered on the A4 page with automatic centering.
-    Images are resized to fill the page optimally.
+    The grid fills the page with equal spacing between images.
     """
     n = len(images)
     cols = max(1, layout.cols)
     rows = math.ceil(n / cols)
 
-    pad = layout.padding
     label_h = layout.label_h
+    margin = 80  # Fixed margin on each side
 
-    # Calculate optimal cell size to fill the entire A4 page
-    # Width: cols * cell + (cols + 1) * pad = A4_LANDSCAPE_WIDTH
-    # Height: rows * (cell + label_h) + (rows + 1) * pad = A4_LANDSCAPE_HEIGHT
+    # Calculate cell size to fill width with equal spacing
+    # Available width = A4 width - 2 * margin
+    # Width = cols * cell_size + (cols + 1) * spacing
+    # We want cell_size to be the limiting factor from height
+    # Height = rows * (cell_size + label_h) + (rows + 1) * spacing <= A4 height - 2 * margin
     
-    max_cell_from_width = (A4_LANDSCAPE_WIDTH - (cols + 1) * pad) // cols
-    max_cell_from_height = (A4_LANDSCAPE_HEIGHT - (rows + 1) * pad) // rows - label_h
+    available_width = A4_LANDSCAPE_WIDTH - 2 * margin
+    available_height = A4_LANDSCAPE_HEIGHT - 2 * margin
     
-    # Use the smaller dimension to ensure everything fits
-    cell_size = min(max_cell_from_width, max_cell_from_height)
+    # Calculate max cell size from height constraint first
+    # rows * (cell + label_h) + (rows + 1) * spacing = available_height
+    # Try with minimum spacing of 15px
+    min_spacing = 15
+    max_cell_from_height = (available_height - (rows + 1) * min_spacing) // rows - label_h
     
-    # Ensure minimum size
+    # Calculate spacing needed to fill width with this cell size
+    # available_width = cols * cell_size + (cols + 1) * spacing
+    # spacing = (available_width - cols * cell_size) / (cols + 1)
+    spacing = (available_width - cols * max_cell_from_height) / (cols + 1)
+    
+    if spacing >= min_spacing:
+        # Height is the limiting factor, use height-based calculation
+        cell_size = max_cell_from_height
+        pad = int(spacing)
+    else:
+        # Width is the limiting factor
+        # available_width = cols * cell_size + (cols + 1) * min_spacing
+        cell_size = (available_width - (cols + 1) * min_spacing) // cols
+        pad = min_spacing
+
+    # Ensure minimum cell size
     cell_size = max(cell_size, 100)
 
-    # Calculate grid dimensions
+    # Calculate actual grid dimensions
     grid_w = cols * cell_size + (cols + 1) * pad
     grid_h = rows * (cell_size + label_h) + (rows + 1) * pad
 
