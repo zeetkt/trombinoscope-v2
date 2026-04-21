@@ -70,17 +70,23 @@ def main() -> None:
             try:
                 from streamlit_sortables import sort_items
 
-                sortable_data = prepare_sortable_data(pil_imgs, names)
-                sorted_items = sort_items(sortable_data, key="sortable_photos")
+                # Use labels for sortable items (must be list[str])
+                sortable_labels = [f"{i+1}. {name}" for i, name in enumerate(names)]
+                sorted_labels = sort_items(sortable_labels, key="sortable_photos")
 
                 # Reorder if changed
-                if sorted_items:
-                    new_indices = get_reordered_indices(sorted_items)
-                    if new_indices != list(range(len(pil_imgs))):
-                        st.session_state.reordered_images = reorder_list(pil_imgs, new_indices)
-                        st.session_state.reordered_names = reorder_list(names, new_indices)
-                        st.session_state.reordered_files = reorder_list(files, new_indices)
-                        st.rerun()
+                if sorted_labels and sorted_labels != sortable_labels:
+                    # Extract new indices from sorted labels
+                    new_indices = []
+                    for label in sorted_labels:
+                        # Extract original index from label "N. name"
+                        idx = int(label.split(".")[0]) - 1
+                        new_indices.append(idx)
+
+                    st.session_state.reordered_images = reorder_list(pil_imgs, new_indices)
+                    st.session_state.reordered_names = reorder_list(names, new_indices)
+                    st.session_state.reordered_files = reorder_list(files, new_indices)
+                    st.rerun()
             except ImportError:
                 st.info("streamlit-sortables non installé. Utilisez les numéros ci-dessous pour réorganiser.")
 
