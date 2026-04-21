@@ -25,7 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation2 \
     libgomp1 \
     libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
+
+# Create .streamlit directory for appuser
+RUN mkdir -p /home/appuser/.streamlit && chown -R appuser:appuser /home/appuser
 
 WORKDIR /app
 
