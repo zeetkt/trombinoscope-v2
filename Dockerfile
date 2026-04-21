@@ -32,6 +32,7 @@ WORKDIR /app
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/appuser/.local
 ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Copy application code
 COPY --chown=appuser:appuser . .
