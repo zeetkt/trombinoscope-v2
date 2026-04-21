@@ -70,23 +70,37 @@ def main() -> None:
             try:
                 from streamlit_sortables import sort_items
 
-                # Use labels for sortable items (must be list[str])
-                sortable_labels = [f"{i+1}. {name}" for i, name in enumerate(names)]
-                sorted_labels = sort_items(sortable_labels, key="sortable_photos")
+                # Create unique IDs for each image to track them across reordering
+                if "image_ids" not in st.session_state or len(st.session_state.image_ids) != len(pil_imgs):
+                    st.session_state.image_ids = [f"img_{i}" for i in range(len(pil_imgs))]
+
+                # Create labels showing thumbnail + name
+                # streamlit-sortables v0.3.1 supports direction='vertical' for better display
+                sortable_labels = [f"📷 {name}" for name in names]
+                sorted_labels = sort_items(
+                    sortable_labels,
+                    key="sortable_photos",
+                    direction="vertical"
+                )
 
                 # Reorder if changed
                 if sorted_labels and sorted_labels != sortable_labels:
-                    # Extract new indices from sorted labels
+                    # Find new order by matching labels
                     new_indices = []
-                    for label in sorted_labels:
-                        # Extract original index from label "N. name"
-                        idx = int(label.split(".")[0]) - 1
-                        new_indices.append(idx)
+                    for sorted_label in sorted_labels:
+                        # Find which original index corresponds to this label
+                        for i, name in enumerate(names):
+                            if sorted_label == f"📷 {name}":
+                                new_indices.append(i)
+                                break
 
-                    st.session_state.reordered_images = reorder_list(pil_imgs, new_indices)
-                    st.session_state.reordered_names = reorder_list(names, new_indices)
-                    st.session_state.reordered_files = reorder_list(files, new_indices)
-                    st.rerun()
+                    if len(new_indices) == len(pil_imgs):
+                        st.session_state.reordered_images = reorder_list(pil_imgs, new_indices)
+                        st.session_state.reordered_names = reorder_list(names, new_indices)
+                        st.session_state.reordered_files = reorder_list(files, new_indices)
+                        # Update IDs to match new order
+                        st.session_state.image_ids = [st.session_state.image_ids[i] for i in new_indices]
+                        st.rerun()
             except ImportError:
                 st.info("streamlit-sortables non installé. Utilisez les numéros ci-dessous pour réorganiser.")
 
