@@ -37,6 +37,7 @@ def calculate_a4_layout(
 
     Automatically determines the best number of columns and image size
     to fit all images on an A4 landscape page at 300 DPI.
+    Maximizes image size to fill the page harmoniously.
 
     Args:
         num_images: Number of images to arrange
@@ -51,62 +52,61 @@ def calculate_a4_layout(
     usable_width = A4_LANDSCAPE_WIDTH - (2 * A4_MARGIN)
     usable_height = A4_LANDSCAPE_HEIGHT - (2 * A4_MARGIN)
 
-    # Try different column counts to find optimal fit
+    # Try different configurations to find optimal fit
     best_layout = None
-    best_score = float('-inf')
+    best_cell_size = 0
 
-    for cols in range(1, min(num_images + 1, 8)):  # Max 8 columns
+    # Test different column counts (1 to min(num_images, 6))
+    # 6 columns max for A4 to keep images readable
+    for cols in range(1, min(num_images + 1, 7)):
         rows = math.ceil(num_images / cols)
 
-        # Calculate maximum possible cell size
-        # Width equation: cols * cell + (cols + 1) * padding <= usable_width
-        # Height equation: rows * (cell + label_h) + (rows + 1) * padding <= usable_height
+        # Try different padding values to find optimal balance
+        for padding in [30, 40, 50, 60]:
+            # Calculate max cell size from width constraint
+            # cols * cell_size + (cols + 1) * padding <= usable_width
+            max_cell_width = (usable_width - (cols + 1) * padding) // cols
 
-        # Try with minimum padding of 20px
-        padding = 20
+            # Calculate max cell size from height constraint
+            # rows * (cell_size + label_h) + (rows + 1) * padding <= usable_height
+            max_cell_height = (usable_height - (rows + 1) * padding) // rows - label_h
 
-        # Calculate max cell size from width constraint
-        max_cell_width = (usable_width - (cols + 1) * padding) // cols
+            # Use the smaller dimension to ensure square cells
+            cell_size = min(max_cell_width, max_cell_height)
 
-        # Calculate max cell size from height constraint
-        max_cell_height = (usable_height - (rows + 1) * padding) // rows - label_h
+            # Skip if too small
+            if cell_size < 150:
+                continue
 
-        # Use the smaller dimension to ensure square cells
-        cell_size = min(max_cell_width, max_cell_height, 400)  # Max 400px per cell
-
-        if cell_size < 100:  # Too small, skip
-            continue
-
-        # Calculate actual canvas size
-        canvas_w = cols * cell_size + (cols + 1) * padding
-        canvas_h = rows * (cell_size + label_h) + (rows + 1) * padding
-
-        # Score based on cell size (larger is better) and waste (less is better)
-        area_used = canvas_w * canvas_h
-        total_area = usable_width * usable_height
-        utilization = area_used / total_area
-
-        # Prefer layouts with larger cells and good page utilization
-        score = cell_size * 0.7 + utilization * 500
-
-        if score > best_score:
-            best_score = score
-            best_layout = Layout(
-                cols=cols,
-                out_size=cell_size,
-                padding=padding,
-                label_h=label_h,
-                bg=bg,
-                font_size=font_size,
-            )
+            # Prefer larger cell sizes
+            # With fewer images, we want to maximize cell size
+            if cell_size > best_cell_size:
+                best_cell_size = cell_size
+                best_layout = Layout(
+                    cols=cols,
+                    out_size=cell_size,
+                    padding=padding,
+                    label_h=label_h,
+                    bg=bg,
+                    font_size=font_size,
+                )
 
     # Fallback if no good layout found
     if best_layout is None:
-        # Use 4 columns with smaller cells
+        # For many images, use smaller cells
+        cols = min(6, num_images)
+        rows = math.ceil(num_images / cols)
+        padding = 20
+        
+        # Calculate max possible size
+        max_cell_width = (usable_width - (cols + 1) * padding) // cols
+        max_cell_height = (usable_height - (rows + 1) * padding) // rows - label_h
+        cell_size = min(max_cell_width, max_cell_height, 200)
+        
         best_layout = Layout(
-            cols=min(4, num_images),
-            out_size=200,
-            padding=20,
+            cols=cols,
+            out_size=max(cell_size, 100),
+            padding=padding,
             label_h=label_h,
             bg=bg,
             font_size=font_size,
