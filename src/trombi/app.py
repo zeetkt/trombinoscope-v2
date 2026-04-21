@@ -324,6 +324,19 @@ def main() -> None:
                     st.error(f"Erreur: {e}")
                     logger.exception("Processing failed")
 
+    # Footer with author and license
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style='text-align: center; color: #666; font-size: 0.8em; padding: 20px;'>
+            © 2026 <strong>Bastien ERRICO</strong> | 
+            <a href="https://github.com/zeetkt/trombinoscope-v2" target="_blank">GitHub</a> | 
+            License MIT
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 if __name__ == "__main__":
     main()
