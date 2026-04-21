@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from config.settings import settings
 from src.trombi.image_processor import process_images_parallel
-from src.trombi.layout import Layout, compose_trombinoscope, calculate_a4_layout
+from src.trombi.layout import Layout, compose_trombinoscope, compose_trombinoscope_a4, calculate_a4_layout
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,6 +120,12 @@ def main() -> None:
                                 font_size=int(font_size),
                             )
                             st.info(f"Format A4: {layout.cols} colonnes, vignettes de {layout.out_size}px")
+                            canvas = compose_trombinoscope_a4(
+                                images=headshots,
+                                labels=labels,
+                                title_br=title_br,
+                                layout=layout,
+                            )
                         else:
                             layout = Layout(
                                 cols=cols,
@@ -129,13 +135,12 @@ def main() -> None:
                                 bg=bg,
                                 font_size=int(font_size),
                             )
-
-                        canvas = compose_trombinoscope(
-                            images=headshots,
-                            labels=labels,
-                            title_br=title_br,
-                            layout=layout,
-                        )
+                            canvas = compose_trombinoscope(
+                                images=headshots,
+                                labels=labels,
+                                title_br=title_br,
+                                layout=layout,
+                            )
 
                         st.image(canvas, caption="Preview")
 

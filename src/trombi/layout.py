@@ -179,3 +179,65 @@ def compose_trombinoscope(
         )
 
     return canvas
+
+
+def compose_trombinoscope_a4(
+    images: List[Image.Image],
+    labels: Optional[List[str]],
+    title_br: str,
+    layout: Layout,
+) -> Image.Image:
+    """Compose images into an A4 landscape format (3508x2480px at 300 DPI).
+    
+    The grid is centered on the A4 page with automatic margins.
+    """
+    n = len(images)
+    cols = max(1, layout.cols)
+    rows = math.ceil(n / cols)
+
+    cell = layout.out_size
+    pad = layout.padding
+    label_h = layout.label_h
+
+    # Calculate grid dimensions
+    grid_w = cols * cell + (cols + 1) * pad
+    grid_h = rows * (cell + label_h) + (rows + 1) * pad
+
+    # Create A4 canvas with exact dimensions
+    a4_canvas = Image.new("RGB", (A4_LANDSCAPE_WIDTH, A4_LANDSCAPE_HEIGHT), layout.bg)
+    draw = ImageDraw.Draw(a4_canvas)
+
+    font_label = load_font(layout.font_size, bold=True)
+    font_title = load_font(layout.font_size + 8, bold=True)
+
+    # Center the grid on A4 page
+    offset_x = (A4_LANDSCAPE_WIDTH - grid_w) // 2
+    offset_y = (A4_LANDSCAPE_HEIGHT - grid_h) // 2
+
+    for i, img in enumerate(images):
+        r, c = divmod(i, cols)
+        x = offset_x + pad + c * (cell + pad)
+        y = offset_y + pad + r * (cell + label_h + pad)
+
+        a4_canvas.paste(img, (x, y))
+
+        if labels and i < len(labels) and labels[i].strip():
+            text = labels[i].strip()
+            bbox = draw.textbbox((0, 0), text, font=font_label)
+            tw = bbox[2] - bbox[0]
+            tx = x + (cell - tw) // 2
+            ty = y + cell + 10
+            draw.text((tx, ty), text, fill="black", font=font_label)
+
+    if title_br.strip():
+        bbox = draw.textbbox((0, 0), title_br, font=font_title)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        draw.text(
+            (A4_LANDSCAPE_WIDTH - tw - 100, A4_LANDSCAPE_HEIGHT - th - 80),
+            title_br,
+            fill="black",
+            font=font_title,
+        )
+
+    return a4_canvas
